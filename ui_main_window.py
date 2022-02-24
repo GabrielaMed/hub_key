@@ -19,11 +19,9 @@ class Ui_MainWindow(object):
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(1356, 800)
         MainWindow.setMinimumSize(QSize(800, 800))
-        MainWindow.setStyleSheet(u"background-color: rgb(248, 252, 255);\n"
-"font: 8pt \"Aldrich\";")
+        MainWindow.setStyleSheet(u"background-color: rgb(248, 252, 255);\n""font: 8pt \"Aldrich\";")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
-        self.centralwidget.setStyleSheet(u"color: rgb(222, 234, 255);")
         self.horizontalLayout_2 = QHBoxLayout(self.centralwidget)
         self.horizontalLayout_2.setSpacing(0)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -74,8 +72,7 @@ class Ui_MainWindow(object):
         self.search_box.setObjectName(u"search_box")
         self.search_box.setMinimumSize(QSize(200, 32))
         self.search_box.setMaximumSize(QSize(200, 32))
-        self.search_box.setStyleSheet(u"QFrame#search_box {border: 1px solid #c4c4c4; border-radius: 16px; color: #D2E4FF}\n"
-"QLineEdit{border-radius: 15px}")
+        self.search_box.setStyleSheet(u"QFrame#search_box {border: 1px solid #c4c4c4; border-radius: 16px; color: #D2E4FF}\n""QLineEdit{border-radius: 15px}")
         self.search_box.setFrameShape(QFrame.StyledPanel)
         self.search_box.setFrameShadow(QFrame.Raised)
         self.buscar = QLineEdit(self.search_box)
@@ -83,14 +80,13 @@ class Ui_MainWindow(object):
         self.buscar.setGeometry(QRect(1, 1, 165, 30))
         self.buscar.setMinimumSize(QSize(165, 30))
         self.buscar.setMaximumSize(QSize(16777215, 16777215))
-        self.buscar.setStyleSheet(u"QLineEdit{border-top-right-radius:0px;border-bottom-right-radius:0px;border-right:1px solid #c4c4c4;\n"
-"padding-left: 14px; color: #A0A0A0;}")
+        self.buscar.setStyleSheet(u"QLineEdit{border-top-right-radius:0px;border-bottom-right-radius:0px;border-right:1px solid #c4c4c4;\n""padding-left: 14px; color: #A0A0A0;}")
         self.search_icon = QToolButton(self.search_box)
         self.search_icon.setObjectName(u"search_icon")
         self.search_icon.setGeometry(QRect(170, 5, 22, 22))
         self.search_icon.setStyleSheet(u"QToolButton{ border:hidden}")
         icon = QIcon()
-        icon.addFile(u"icons/search_black_18dp.svg.svg", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u"icons\search_black_18dp.svg.svg", QSize(), QIcon.Normal, QIcon.Off)
         self.search_icon.setIcon(icon)
         self.search_icon.setIconSize(QSize(18, 18))
 
@@ -110,10 +106,11 @@ class Ui_MainWindow(object):
         self.layout_table.addItem(self.horizontalSpacer_5)
 
         self.table = QTableWidget(self.centralwidget)
-        if (self.table.columnCount() < 3):
-            self.table.setColumnCount(3)
+        if (self.table.columnCount() < 4):
+            self.table.setColumnCount(4)
 
         font = QFont()
+        font.setFamilies([u"Aldrich"])
         font.setPointSize(18)
         font.setUnderline(True)
 
@@ -129,6 +126,10 @@ class Ui_MainWindow(object):
         __qtablewidgetitem2.setFont(font)
         __qtablewidgetitem2.setForeground(QColor('#064A80'))
         self.table.setHorizontalHeaderItem(2, __qtablewidgetitem2)
+        __qtablewidgetitem3 = QTableWidgetItem()
+        __qtablewidgetitem3.setFont(font)
+        __qtablewidgetitem3.setForeground(QColor('#064A80'))
+        self.table.setHorizontalHeaderItem(3, __qtablewidgetitem3)
         self.table.setObjectName(u"table")
         self.table.setMinimumSize(QSize(0, 0))
         self.table.setMaximumSize(QSize(16777215, 16777215))
@@ -141,6 +142,20 @@ class Ui_MainWindow(object):
         p.setColor(QPalette.HighlightedText, '#000000')
         self.table.setPalette(p)
 
+        self.table.horizontalHeader().setStyleSheet(u"QHeaderView::Section{height:70px; background-color: #F8FCFF; border:hidden;}")
+        self.table.setStyleSheet(u"QTableView{border: hidden}")
+        self.table.verticalHeader().setVisible(False)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
+        self.table.setSortingEnabled(False)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+
+        font1 = QFont()
+        font1.setFamilies([u"Aldrich"])
+        font1.setPointSize(16)
+
+        self.table.setFont(font1)
 
         self.layout_table.addWidget(self.table)
 
@@ -174,11 +189,7 @@ class Ui_MainWindow(object):
         self.btn_excluir.setObjectName(u"btn_excluir")
         self.btn_excluir.setMinimumSize(QSize(163, 40))
         self.btn_excluir.setMaximumSize(QSize(163, 40))
-        self.btn_excluir.setStyleSheet(u"border-radius: 20px;\n"
-"font: 16pt \"Aldrich\";\n"
-"border: 2px solid;\n"
-"color: rgb(6, 74, 128);\n"
-"border-color: rgb(6, 74, 128);")
+        self.btn_excluir.setStyleSheet(u"border-radius: 20px;\n""font: 16pt \"Aldrich\";\n""border: 2px solid;\n""color: rgb(6, 74, 128);\n""border-color: rgb(6, 74, 128);")
 
         self.horizontalLayout.addWidget(self.btn_excluir)
 
@@ -192,7 +203,7 @@ class Ui_MainWindow(object):
         self.btn_imprimir.setMaximumSize(QSize(163, 40))
         self.btn_imprimir.setStyleSheet(u"border-radius: 20px;\n"
 "font: 16pt \"Aldrich\";\n"
-"color: rgb(238, 238, 238);\n"
+"color: #fff;\n"
 "background-color: rgb(6, 74, 128);")
 
         self.horizontalLayout.addWidget(self.btn_imprimir)
@@ -207,7 +218,7 @@ class Ui_MainWindow(object):
         self.btn_cadastrar.setMaximumSize(QSize(163, 40))
         self.btn_cadastrar.setStyleSheet(u"border-radius: 20px;\n"
 "font: 16pt \"Aldrich\";\n"
-"color: rgb(238, 238, 238);\n"
+"color: #fff;\n"
 "background-color: rgb(6, 74, 128);")
 
         self.horizontalLayout.addWidget(self.btn_cadastrar)
@@ -242,13 +253,14 @@ class Ui_MainWindow(object):
         self.buscar.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Buscar...", None))
         self.search_icon.setText("")
         ___qtablewidgetitem = self.table.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"Identificador", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"check_box", None));
         ___qtablewidgetitem1 = self.table.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Nome", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"Identificador", None));
         ___qtablewidgetitem2 = self.table.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"N\u00edvel Acesso", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"Nome", None));
+        ___qtablewidgetitem3 = self.table.horizontalHeaderItem(3)
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"N\u00edvel Acesso", None));
         self.btn_excluir.setText(QCoreApplication.translate("MainWindow", u"Excluir", None))
         self.btn_imprimir.setText(QCoreApplication.translate("MainWindow", u"Imprimir", None))
         self.btn_cadastrar.setText(QCoreApplication.translate("MainWindow", u"Cadastrar", None))
     # retranslateUi
-
