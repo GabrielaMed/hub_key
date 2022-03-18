@@ -1,11 +1,13 @@
 import sys
 import ctypes
 import sqlite3
+import smtplib, ssl
 from datetime import datetime
 from ui_main import *
 from ui_dialog import Ui_Dialog, Ui_Dialog_2
 from def_print_img import *
-#from listas import * # chamando uma lista gigantesca
+import code128
+import os
 
 class Overlay(QWidget):
 	def __init__(self, parent):
@@ -67,10 +69,10 @@ class MainWindow(QMainWindow):
 	all_pages = []
 	turnoManha = '+7 hours'
 	turnoTarde = '+12 hours'
-	turnoNoite = '+17 hours'
+	turnoNoite = '+18 hours'
 	
 	tempo = 0
-	limit = 50
+	limit = 5
 	count = 0
 	sessao_usuario = None
 
@@ -148,6 +150,7 @@ class MainWindow(QMainWindow):
 		#BOTÃO ADMINISTRADOR
 		self.ui.btn_adm_inicio.clicked.connect(lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.email))
 		self.ui.btn_adm_inicio.clicked.connect(lambda: self.ui.lineEdit_email_inicio.setFocus())
+		self.ui.btn_adm_inicio.clicked.connect(lambda: self.ui.frame_voltar_login.show())
 
 		#BOTÃO ENVIAR INICIO
 		self.ui.btn_enviar_inicio.clicked.connect(self.validaEmail)
@@ -156,10 +159,17 @@ class MainWindow(QMainWindow):
 		
 		#BOTÃO ENTRAR INICIO
 		self.ui.btn_entrar_inicio.clicked.connect(self.validaSenha)
+		self.ui.btn_entrar_inicio.clicked.connect(lambda: self.ui.frame_voltar_login.hide())
 		self.ui.lineEdit_senha_inicio.returnPressed.connect(self.validaSenha)
+		self.ui.btn_entrar_inicio.clicked.connect(self.set_default_position) # Arrumando a posica da barra lateral
+		self.ui.lineEdit_senha_inicio.returnPressed.connect(self.set_default_position)
 
 		#BOTÃO ESQUECI SENHA
 		self.ui.btn_esqueci_senha.clicked.connect(self.esqueciSenha)
+		
+		#BOTAO VOLTAR INICIO
+		self.ui.btn_voltar_login.clicked.connect(lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.inicio))
+		self.ui.btn_voltar_login.clicked.connect(lambda: self.ui.frame_voltar_login.hide())
 
 		#BOTÃO INTEGRANTE
 		self.ui.btn_int_inicio.clicked.connect(lambda: self.ui.pages.setCurrentWidget(self.ui.emprestimos))
@@ -179,6 +189,7 @@ class MainWindow(QMainWindow):
 		self.ui.btn_menu_chave.clicked.connect(lambda: self.animation(self.ui.btn_menu_chave.y()))
 		self.ui.btn_menu_chave.clicked.connect(self.carregaChaves)
 		self.ui.btn_menu_chave.clicked.connect(lambda: self.ui.pages_adm.setCurrentWidget(self.ui.lista_chaves))
+		self.ui.btn_menu_chave.clicked.connect(self.clear_table)
 
 		#BOTÃO BUSCA CHAVES
 		self.ui.btn_busca_chaves.clicked.connect(self.carregaChaves)
@@ -186,6 +197,7 @@ class MainWindow(QMainWindow):
 
 		#BOTÃO CADASTRAR CHAVE
 		self.ui.btn_nova_chave.clicked.connect(lambda: self.ui.pages_adm.setCurrentWidget(self.ui.cad_chaves))
+		self.ui.btn_nova_chave.clicked.connect(self.default_title)
 
 		#BOTÃO IMPRIMIR CHAVE
 		self.ui.btn_imp_chave.clicked.connect(lambda: self.show_tela_impressao(self.ui.table_lista_chaves.selectedItems(), 2)) #Ratu
@@ -206,6 +218,7 @@ class MainWindow(QMainWindow):
 		self.ui.btn_menu_usuario.clicked.connect(lambda: self.animation(self.ui.btn_menu_usuario.y()))
 		self.ui.btn_menu_usuario.clicked.connect(self.carregaUsuarios)
 		self.ui.btn_menu_usuario.clicked.connect(lambda: self.ui.pages_adm.setCurrentWidget(self.ui.lista_usuarios))
+		self.ui.btn_menu_usuario.clicked.connect(self.clear_table)
 
 		#BOTÃO BUSCA USUARIOS
 		self.ui.lineEdit_busca_usuarios.returnPressed.connect(self.carregaUsuarios)
@@ -213,6 +226,7 @@ class MainWindow(QMainWindow):
 
 		#BOTÃO CADASTRAR USUARIO
 		self.ui.btn_cad_usuarios.clicked.connect(lambda: self.ui.pages_adm.setCurrentWidget(self.ui.cad_usuarios)) #Rato2
+		self.ui.btn_cad_usuarios.clicked.connect(self.default_title)
 
 		#BOTÃO IMPRIMIR
 		self.ui.btn_imp_usuarios.clicked.connect(lambda: self.show_tela_impressao(self.ui.table_lista_usuarios.selectedItems(), 3)) #Ratu
@@ -235,6 +249,7 @@ class MainWindow(QMainWindow):
 		self.ui.btn_menu_historico.clicked.connect(self.limpaCampos)
 		self.ui.btn_menu_historico.clicked.connect(lambda: self.animation(self.ui.btn_menu_historico.y()))
 		self.ui.btn_menu_historico.clicked.connect(self.loadData)
+		self.ui.btn_menu_historico.clicked.connect(self.clear_table)
 
 		#BOTÃO BUSCA HISTORICO
 		self.ui.lineEdit_searchBar.returnPressed.connect(self.loadData)
@@ -244,6 +259,8 @@ class MainWindow(QMainWindow):
 		self.ui.radio_selection_PrintPV.toggled.connect(lambda: self.radio_btn_selection(self.ui.radio_selection_PrintPV.isChecked()))
 		self.ui.btn_back_PrintPV.clicked.connect(self.hide_tela_impressao)
 		self.ui.pushButton_print.clicked.connect(lambda: self.show_tela_impressao(self.lista_rato, 4)) #Ratu
+		self.ui.btn_back_PrintPV.clicked.connect(self.clear_scrollArea)
+		self.ui.btn_back_PrintPV.clicked.connect(self.delete_imgs)
 
 		#BOTAO VER HISTORICO
 		self.ui.pushButton_show.clicked.connect(self.load_search_date_historic)
@@ -255,10 +272,12 @@ class MainWindow(QMainWindow):
 		self.ui.btn_menu_sair.clicked.connect(lambda: self.ui.pages_adm.setCurrentWidget(self.ui.lista_chaves))
 		self.ui.btn_menu_sair.clicked.connect(lambda: self.ui.pages.setCurrentWidget(self.ui.bem_vindo))
 		self.ui.btn_print_PrintPV.clicked.connect(lambda: print_img(self.all_pages, self.ui.combo_box_device_PrintPV.currentText(), self.ui.lineEdit_pages_PrintPV.text()))
+		self.ui.btn_print_PrintPV.clicked.connect(self.dialog_impresso)
+		self.ui.btn_menu_sair.clicked.connect(self.clear_table)
 
 		#DISPOSIÇÃO DAS TABELAS
 		self.ui.tableEmprestimo.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-		self.ui.tableEmprestimo.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+		self.ui.tableEmprestimo.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
 		#---------------------------------------------------------------#
 		self.ui.table_lista_chaves.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 		self.ui.table_lista_chaves.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
@@ -291,6 +310,18 @@ class MainWindow(QMainWindow):
 		self.animator.setStartValue(QRect(0, self.ui.frame_selected.y(), 79, 70))
 		self.animator.setEndValue(QRect(0, where, 79, 70))
 		self.animator.start()
+	
+	def set_default_position(self): #Volta o frame de selecao para a posicao inicial ao entrar no sistema
+		self.ui.frame_selected.setGeometry(0, 0, 79, 70)
+
+	def clear_table(self): # Tira o foco das linhas das tabelas quando trocado de tela
+		self.ui.table_lista_chaves.clearSelection()
+		self.ui.table_lista_usuarios.clearSelection()
+		self.ui.table_relatorio.clearSelection()
+
+	def default_title(self):
+		self.ui.label_6.setText('Cadastrar Chave')
+		self.ui.label_3.setText('Cadastrar Usuário')
 
 	def limpaCampos(self):
 		for i in self.ui.pages.currentWidget().findChildren(QLineEdit):
@@ -365,6 +396,7 @@ class MainWindow(QMainWindow):
 			self.sessao_usuario = login_usuario[:-2]
 			print(self.sessao_usuario)
 			self.carregaChaves()
+			self.ui.frame_voltar_login.hide()
 			self.ui.pages.setCurrentWidget(self.ui.menu_adm)
 			self.ui.stackedWidget.setCurrentWidget(self.ui.inicio)
 			self.ui.lineEdit_senha_inicio.setText('')
@@ -377,6 +409,29 @@ class MainWindow(QMainWindow):
 		self.popup.hide()
 		self.ui.lineEdit_senha_inicio.setFocus()
 
+	def enviaEmail(self, email, senha):
+
+		de = email
+		para = senha
+		
+		context = ssl.create_default_context()
+		try:
+			server = smtplib.SMTP('smtp-mail.outlook.com', 587)
+
+			server.ehlo()
+			server.starttls(context=context)
+			server.ehlo()
+			server.login('anderson_ratinho_zika@hotmail.com', 'sca82812079')
+
+			msg = f'Subject: hub_key - recuperacao de senha\n\nlogin: {email}\nsenha: {senha}'
+			#server.sendmail(de, para, msg)
+			server.sendmail("anderson_ratinho_zika@hotmail.com", "anderson.scr@outlook.com", msg)
+
+		except Exception as e:
+			print(e)
+		finally:
+			server.quit() 
+
 	def esqueciSenha(self):
 		self.ui.lineEdit_senha_inicio.setText('')
 
@@ -386,18 +441,19 @@ class MainWindow(QMainWindow):
 		except sqlite3.Error as erro:
 			print('Erro com o banco de dados: ', erro)
 			return
-
-		#codigo para disparo de email
-		print(senha)
-
+	
 		msg = Dialog2(self)
 		msg.ui.label.setText('Senha enviada para')
 		msg.ui.label_2.setText(f'{self.sessao_usuario}')
 		self.popup.show()
 		msg.exec()
-		self.popup.hide()
 
+		#envia o email
+		self.enviaEmail(self.sessao_usuario, senha)
+		self.popup.hide()
+	
 		self.ui.lineEdit_senha_inicio.setFocus()
+ 
 
 	def voltarInicio(self):
 		if self.sessao_usuario:
@@ -516,53 +572,69 @@ class MainWindow(QMainWindow):
 
 	def encontraPosItem(self, chave):
 		for row in range(self.ui.tableEmprestimo.rowCount()):
-			item = self.ui.tableEmprestimo.item(row, 0)
+			item = self.ui.tableEmprestimo.item(row, 1)
 			if chave == item.text().lower():
-				print(row)
+				print(f"l ={row}")
 				return row
 
 	def devolveChave(self, pos, chave):
+		
+		row = self.encontraPosItem(chave)
+		if row == None:
+			try:
+				cursor.execute(f'SELECT rowid FROM emprestimo WHERE fk_rowid_chave = {pos} ORDER BY rowid DESC')
+				rowid = cursor.fetchone()[0]
+			except sqlite3.Error as erro:
+				print('Erro com o banco de dados: ', erro)
+				return
+		else:
+			rowid = self.ui.tableEmprestimo.item(row, 0).text()
+
 		msg = Dialog(self)
 		msg.ui.label.setText(f'{self.sessao_usuario[2].split(" ")[0]}, deseja devolver a chave {chave}')
 
 		msg2 = Dialog2(self)
 		self.popup.show()
 		if msg.exec():
-			args = (self.sessao_usuario[0], str(datetime.now())[:-7], pos)
+
+			args = (self.sessao_usuario[0], str(datetime.now())[:-7], rowid)
 			try:
-				cursor.execute('UPDATE emprestimo SET fk_rowid_usuario_dev = ?, data_hora_devolucao = ? WHERE fk_rowid_chave = ?', args)
+				cursor.execute('UPDATE emprestimo SET fk_rowid_usuario_dev = ?, data_hora_devolucao = ? WHERE rowid = ?', args)
 				cursor.execute(f'UPDATE chave SET estado = 0 WHERE rowid = {pos}')
 				banco.commit()
 			except sqlite3.Error as erro:
 				print('Erro com o banco de dados: ', erro)
 				return
 			msg2.ui.label.setText(f'Chave devolvida com sucesso.')
-			self.ui.tableEmprestimo.removeRow(self.encontraPosItem(chave))
+			if row != None:
+				self.ui.tableEmprestimo.removeRow(row)
 		else:
 			msg2.ui.label.setText(f'Operação cancelada!')
 		msg2.exec()
 		self.popup.hide()
 
 	def carregaEmprestimo(self):
-		self.ui.table_relatorio.removeRow(self.ui.table_relatorio.rowCount()-1)
+	
 		txt = self.ui.lineEdit_busca_emprestimos.text().lower()
-		
-		if int(str(datetime.now().time())[:2]) >= 7:
+		hora_atual = int(str(datetime.now().time())[:2])
+		print('hora_atual = ', hora_atual)
+		if hora_atual >= 7 and hora_atual < 13:
 			turno = self.turnoManha
 			contra_turno = self.turnoTarde
-		elif int(str(datetime.now().time())[:2]) >= 13:
+		elif hora_atual >= 13:
 			turno = self.turnoTarde
 			contra_turno = self.turnoNoite
 		else:
 			turno = self.turnoNoite
 			contra_turno = '+23 hours'
+		print(f"{turno}~{contra_turno}")
 
 		if txt == '':		
-			query = f'''SELECT id_sala, usuario.nome, data_hora_retirada FROM emprestimo, chave, usuario WHERE chave.rowid = fk_rowid_chave AND usuario.rowid = fk_rowid_usuario_ret AND
+			query = f'''SELECT emprestimo.rowid, id_sala, usuario.nome, data_hora_retirada FROM emprestimo, chave, usuario WHERE chave.rowid = fk_rowid_chave AND usuario.rowid = fk_rowid_usuario_ret AND
 						(data_hora_retirada BETWEEN datetime('now','localtime', 'start of day', '{turno}') AND datetime('now', 'localtime', 'start of day', '{contra_turno}')) AND 
 						data_hora_devolucao IS NULL	ORDER BY data_hora_retirada ASC'''
 		else:
-			query = f'''SELECT id_sala, usuario.nome, data_hora_retirada FROM emprestimo, chave, usuario WHERE chave.rowid = fk_rowid_chave AND usuario.rowid = fk_rowid_usuario_ret AND 
+			query = f'''SELECT emprestimo.rowid, id_sala, usuario.nome, data_hora_retirada FROM emprestimo, chave, usuario WHERE chave.rowid = fk_rowid_chave AND usuario.rowid = fk_rowid_usuario_ret AND 
 						(data_hora_retirada BETWEEN datetime('now','localtime', 'start of day', '{turno}') AND datetime('now', 'localtime', 'start of day', '{contra_turno}')) AND
 						data_hora_devolucao IS NULL AND (usuario.nome LIKE "%{txt}%" OR chave.nome LIKE "%{txt}%" OR id_sala LIKE "%{txt}%") ORDER BY data_hora_retirada ASC'''
 
@@ -577,12 +649,12 @@ class MainWindow(QMainWindow):
 
 		for row, emprestimo in enumerate(emprestimos):
 			for col, dado in enumerate(emprestimo):
-				if col == 2:
+				if col == 3:
 					self.ui.tableEmprestimo.setItem(row, col, QTableWidgetItem(dado[11:-3]))	
 				else:
-					self.ui.tableEmprestimo.setItem(row, col, QTableWidgetItem(dado))
+					self.ui.tableEmprestimo.setItem(row, col, QTableWidgetItem(str(dado)))
 				self.ui.tableEmprestimo.item(row, col).setTextAlignment(Qt.AlignCenter)
-		self.add_show_more()
+		self.ui.tableEmprestimo.setColumnHidden(0, True)
 	
 	def carregaChaves(self):
 		txt = self.ui.lineEdit_busca_chaves.text().lower()
@@ -613,6 +685,7 @@ class MainWindow(QMainWindow):
 			self.lista_chaves_btn_editar.setStyleSheet("color: #111111; background-color: transparent;")
 			self.ui.table_lista_chaves.setCellWidget(lin, 3, self.lista_chaves_btn_editar)
 		self.ui.table_lista_chaves.setColumnHidden(0, True)
+		self.ui.pages_adm.setCurrentWidget(self.ui.lista_chaves)
 
 	def deletaChave(self):
 
@@ -661,7 +734,7 @@ class MainWindow(QMainWindow):
 		if ambiente[0] != QValidator.Acceptable:
 			self.ui.lineEdit_cad_id.setText('')
 			campoInvalido = True
-	  
+		
 
 		if campoBranco:
 			msg = Dialog2(self)
@@ -688,7 +761,24 @@ class MainWindow(QMainWindow):
 				banco.commit()
 			except sqlite3.Error as erro:
 				print('Erro com o banco de dados: ', erro)
+				if 'UNIQUE' in erro.args[0]:
+					msg = Dialog2(self)
+					msg.ui.label.setText('Oops! essa chave')
+					msg.ui.label_2.setText('ja foi cadastrada.')
+					self.popup.show()
+					msg.exec()
+					self.popup.hide()
+					self.limpaCampos()
 				return
+		
+			self.limpaCampos()
+
+			msg = Dialog2(self)
+			msg.ui.label.setText('Chave cadastrada')
+			msg.ui.label_2.setText('com sucesso!')
+			self.popup.show()
+			msg.exec()
+			self.popup.hide()
 		else:
 			args = (chave[1].strip(), ambiente[1].strip(), self.ui.table_lista_chaves.item(self.ui.table_lista_chaves.selectedItems()[0].row(), 0).text())
 			print(f"aqui :{self.ui.table_lista_chaves.item(self.ui.table_lista_chaves.selectedItems()[0].row(), 0).text()}")
@@ -698,15 +788,17 @@ class MainWindow(QMainWindow):
 			except sqlite3.Error as erro:
 				print('Erro com o banco de dados: ', erro)
 				return
+			
+			self.limpaCampos()
 
-		self.limpaCampos()
+			msg = Dialog2(self)
+			msg.ui.label.setText('Chave editada')
+			msg.ui.label_2.setText('com sucesso!')
+			self.popup.show()
+			msg.exec()
+			self.popup.hide()
+			self.carregaChaves()
 
-		msg = Dialog2(self)
-		msg.ui.label.setText('Chave cadastrada')
-		msg.ui.label_2.setText('com sucesso!')
-		self.popup.show()
-		msg.exec()
-		self.popup.hide()
 
 	def carregaUsuarios(self):
 		txt = self.ui.lineEdit_busca_usuarios.text().lower()
@@ -718,7 +810,6 @@ class MainWindow(QMainWindow):
 		try:
 			cursor.execute(query)
 			usuarios = cursor.fetchall()
-			print(usuarios)
 		except sqlite3.Error as erro:
 			print('Erro com o banco de dados: ', erro)
 			return
@@ -726,7 +817,6 @@ class MainWindow(QMainWindow):
 		self.ui.table_lista_usuarios.setRowCount(len(usuarios))
 		for lin, usuario in enumerate(usuarios):
 			for col, dado in enumerate(usuario):
-				print(lin, usuario, col, dado)
 				if col == 3:
 					if dado:
 						self.ui.table_lista_usuarios.setItem(lin, col, QTableWidgetItem('Administrador'))
@@ -741,10 +831,10 @@ class MainWindow(QMainWindow):
 			self.lista_usuarios_btn_editar.setIcon(QIcon("icons\edit_black_48dp.svg"))
 			self.lista_usuarios_btn_editar.setIconSize(QSize(16, 16))
 			self.lista_usuarios_btn_editar.clicked.connect(lambda: self.editarUsuario(self.ui.table_lista_usuarios.currentRow()))
-			self.lista_usuarios_btn_editar.setStyleSheet("color: #111111; background-color: transparent;")
+			self.lista_usuarios_btn_editar.setStyleSheet("QPushButton { color: #111111; background-color: transparent;} QPushButton:focus {font-weight:600; outline:0} ")
 			self.ui.table_lista_usuarios.setCellWidget(lin, 4, self.lista_usuarios_btn_editar)
 		self.ui.table_lista_usuarios.setColumnHidden(0, True)
-
+		self.ui.pages_adm.setCurrentWidget(self.ui.lista_usuarios)
 
 	def funcaoSorting(self, event):
 		if event < 2:
@@ -858,7 +948,24 @@ class MainWindow(QMainWindow):
 				banco.commit()
 			except sqlite3.Error as erro:
 				print('Erro com o banco de dados: ', erro)
+				if 'UNIQUE' in erro.args[0]:
+					msg = Dialog2(self)
+					msg.ui.label.setText('Oops! esse usuário')
+					msg.ui.label_2.setText('ja foi cadastrado.')
+					self.popup.show()
+					msg.exec()
+					self.popup.hide()
+					self.limpaCampos()
 				return
+		
+			self.limpaCampos()
+			
+			msg = Dialog2(self)
+			msg.ui.label.setText('Usuário cadastrado')
+			msg.ui.label_2.setText('com sucesso!')
+			self.popup.show()
+			msg.exec()
+			self.popup.hide()
 		else:
 			args = (id_usuario[1].strip(), nome[1].strip(), self.ui.cbb_cad_acesso.currentIndex(), email[1].strip(), senha.strip(), self.ui.table_lista_usuarios.item(self.ui.table_lista_usuarios.selectedItems()[0].row(), 0).text())
 			try:
@@ -867,14 +974,16 @@ class MainWindow(QMainWindow):
 			except sqlite3.Error as erro:
 				print('Erro com o banco de dados: ', erro)
 				return
-		self.limpaCampos()
-		
-		msg = Dialog2(self)
-		msg.ui.label.setText('Usuário cadastrado')
-		msg.ui.label_2.setText('com sucesso!')
-		self.popup.show()
-		msg.exec()
-		self.popup.hide()
+			
+			self.limpaCampos()
+			
+			msg = Dialog2(self)
+			msg.ui.label.setText('Usuário editado')
+			msg.ui.label_2.setText('com sucesso!')
+			self.popup.show()
+			msg.exec()
+			self.popup.hide()
+			self.carregaUsuarios()
 
 	#Editar Chave
 	def editarChave(self, row_source):
@@ -900,17 +1009,27 @@ class MainWindow(QMainWindow):
 		self.popup.hide()
 	
 	### DEF da Impressao ###
+	def dialog_impresso(self):
+		msg = Dialog2(self)
+		msg.ui.label.setText('Impresso com sucesso!')
+		self.popup.show()
+		msg.exec()
+		self.popup.hide()
+	
 	def show_tela_impressao(self, list_to_print, cha_user_rela): #Ratu
 		if cha_user_rela < 4:
 			lista_selecionados = []
 			lista_selecionados2 = []
-			png_path = 'icons/codigo_barra.jpg'
 			for i in list_to_print: 
 				lista_selecionados.append(i.text())
 
 			print(lista_selecionados)
 			for i in self.chunks(lista_selecionados, cha_user_rela):
-				i[0] = png_path
+
+				#codigo_barra = treepoem.generate_barcode(barcode_type="code128", data=i[0])
+				code128.image(i[0]).save(f'codigo_barras_imgs/codigo_barra_{i[0]}.png')
+
+				i[0] = f'codigo_barras_imgs/codigo_barra_{i[0]}'
 				lista_selecionados2.append(i)
 			print(lista_selecionados2)
 			self.papers(lista_selecionados2)
@@ -920,14 +1039,7 @@ class MainWindow(QMainWindow):
 			self.user_paper(self.lista_rato)
 			self.ui.frame_barraLateral.hide()
 			self.ui.pages_adm.setCurrentWidget(self.ui.impressao)
-
-		#self.ui.frame_barraLateral.hide()
-		#if is_bar:
-		#	self.papers(list_to_print)
-		#else:
-		#	self.user_paper(list_to_print)
-		#self.ui.pages_adm.setCurrentWidget(self.ui.impressao)
-
+	
 
 
 	def hide_tela_impressao(self): #TODO melhorar.
@@ -967,6 +1079,10 @@ class MainWindow(QMainWindow):
 
 
 	### DEF da Impressao ###
+	def clear_scrollArea(self):
+		for i in reversed(range(self.ui.horizontalLayout_8_PrintPV.count())):
+			self.ui.horizontalLayout_8_PrintPV.itemAt(i).widget().setParent(None)
+
 	def user_paper(self, list_to_print): # Gerar folhas de impressao
 		splited_list = self.chunks(list_to_print, 19)
 		for i in range(len(splited_list)): #Gera a quantidade de folhas necessarias
@@ -1014,7 +1130,7 @@ class MainWindow(QMainWindow):
 
 	### DEFs do RATO ###
 	def load_search_date_historic(self):
-		self.ui.table_relatorio.removeRow(self.ui_relatorio.table_relatorio.rowCount()-1)
+		self.ui.table_relatorio.removeRow(self.ui.table_relatorio.rowCount()-1)
 		# Junta todos os valores de datas para poder fazer a conta.
 		inicial_date = '-'.join(self.ui.dateEdit_InicialDate.text().split('/')[::-1])
 		end_date = '-'.join(self.ui.dateEdit_EndDate.text().split('/')[::-1])
@@ -1023,7 +1139,6 @@ class MainWindow(QMainWindow):
 						LEFT JOIN usuario a ON emprestimo.fk_rowid_usuario_ret = a.rowid LEFT JOIN usuario b ON emprestimo.fk_rowid_usuario_dev = b.rowid
 						LEFT JOIN chave ON fk_rowid_chave = chave.rowid WHERE data_hora_retirada BETWEEN date("{inicial_date}")
 						AND date("{end_date}") ORDER BY data_hora_retirada ASC'''
-		print(query)
 		try:
 			cursor.execute(query)
 			emprestimos = cursor.fetchall()
@@ -1054,16 +1169,30 @@ class MainWindow(QMainWindow):
 			sublista.pop()
 			lista.append(sublista)
 			del sublista
-		print(lista)
 		self.lista_rato = lista
+
+	def delete_imgs(self):
+		for filename in os.listdir('codigo_barras_imgs'):
+			os.remove(f'codigo_barras_imgs/{filename}')
+
+		for filename in os.listdir('temporary_imgs'):
+			os.remove(f'temporary_imgs/{filename}')
 	
 	def add_show_more(self):
 		rowCount = self.ui.table_relatorio.rowCount()
 		self.ui.table_relatorio.insertRow(rowCount)
 		self.ui.table_relatorio.setSpan(rowCount, 0, 1, 4)
-		newItem = QTableWidgetItem("Ver mais")
-		self.ui.table_relatorio.setItem(rowCount, 0, newItem)
-		self.ui.table_relatorio.item(rowCount, 0).setTextAlignment(Qt.AlignCenter)
+
+		self.lista_relatorio_btn_ver_mais = QPushButton(self.ui.table_relatorio)
+		self.lista_relatorio_btn_ver_mais.setObjectName(u"lista_relatorio_btn_ver_mais")
+		self.lista_relatorio_btn_ver_mais.setCursor(Qt.PointingHandCursor)
+		self.lista_relatorio_btn_ver_mais.setText("Ver mais")
+		self.lista_relatorio_btn_ver_mais.clicked.connect(self.ver_mais)
+		self.lista_relatorio_btn_ver_mais.clicked.connect(self.loadData)
+		self.lista_relatorio_btn_ver_mais.setStyleSheet("#lista_relatorio_btn_ver_mais { background-color: transparent; border: none; color: #111111; font-family: Aldrich; font-size: 18px;}\n"
+		"#lista_relatorio_btn_ver_mais:hover { background-color: #DEEAFF;}")
+		self.ui.table_relatorio.setCellWidget(rowCount, 0, self.lista_relatorio_btn_ver_mais)
+
 
 	def loadData(self):
 		self.ui.table_relatorio.removeRow(self.ui.table_relatorio.rowCount()-1)
@@ -1086,53 +1215,121 @@ class MainWindow(QMainWindow):
 			return
 
 		lista = []
-		self.ui.table_relatorio.setRowCount(len(emprestimos))
-		for row, emprestimo in enumerate(emprestimos):
+		self.ui.table_relatorio.setRowCount(self.limit*self.count)
+		print(f"count e limite: {self.count}, {self.limit}\n")
+		print(f"lista de linhas: {emprestimos}")
+
+		for emprestimo in emprestimos:
 			sublista = []
+			rowCount = self.ui.table_relatorio.rowCount()
+			self.ui.table_relatorio.insertRow(rowCount)
 			for col, dado in enumerate(emprestimo):
 				if dado:
 					if col < 2:
-						self.ui.table_relatorio.setItem(row, col, QTableWidgetItem(str(dado)))
-						self.ui.table_relatorio.item(row, col).setTextAlignment(Qt.AlignCenter)
+						self.ui.table_relatorio.setItem(rowCount, col, QTableWidgetItem(str(dado)))
+						self.ui.table_relatorio.item(rowCount, col).setTextAlignment(Qt.AlignCenter)
 						sublista.append(str(dado))
 					elif col == 2:
-						self.ui.table_relatorio.item(row, col-1).setText(emprestimo[col-1] + ' / ' + emprestimo[col])
+						self.ui.table_relatorio.item(rowCount, col-1).setText(emprestimo[col-1] + ' / ' + emprestimo[col])
 						sublista[-1] = emprestimo[col-1] + ' / ' + emprestimo[col]
 					else:
-						self.ui.table_relatorio.setItem(row, col-1, QTableWidgetItem('/'.join(dado.split()[0].split('-')[::-1]) +'  '+str(dado.split()[1][:-3])))
-						self.ui.table_relatorio.item(row, col-1).setTextAlignment(Qt.AlignCenter)
+						self.ui.table_relatorio.setItem(rowCount, col-1, QTableWidgetItem('/'.join(dado.split()[0].split('-')[::-1]) +'  '+str(dado.split()[1][:-3])))
+						self.ui.table_relatorio.item(rowCount, col-1).setTextAlignment(Qt.AlignCenter)
 						sublista.append('/'.join(dado.split()[0].split('-')[::-1]) +'  '+str(dado.split()[1][:-3]))
 			if len(sublista) == 4 :
 				sublista[-2] = sublista[-1] +' '+ sublista[-2]
 				sublista.pop()
 			lista.append(sublista)
 			del sublista
-		print(lista)
 		self.lista_rato = lista
 		
-		self.add_show_more()
+		if len(emprestimos) >= self.limit: self.add_show_more()
+
 		self.ui.pages_adm.setCurrentWidget(self.ui.historico)
 		self.ui.dateEdit_InicialDate.setDate(QDate.currentDate())
 		self.ui.dateEdit_EndDate.setDate(QDate.currentDate())
 		self.ui.dateEdit_InicialDate.setSelectedSection(QDateEdit.NoSection)
 		self.ui.dateEdit_EndDate.setSelectedSection(QDateEdit.NoSection)
 
-	def ver_mais(self, index):
-		if index.row() == self.ui.table_relatorio.rowCount()-1 and self.ui.table_relatorio.rowCount() > self.limit:
+	def ver_mais(self):
+		if self.ui.table_relatorio.rowCount() > self.limit:
 			self.count += 1
 			self.loadData()
 	### DEFs do RATO ###
 
 	def resetaCount(self):
-		print('resetei')
+		print('resetei o count do ver mais')
 		self.count = 0
+
+	def divideString(self, string):
+		strings = string.split('.')
+		
+		temp = []
+		for item in strings:	
+			tam = len(item)
+			if tam > 12:
+				i = 0
+				while tam-i > 11:
+					if item[i] == ' ':
+						i += 1
+					if item[i+10] == ' ':
+						temp.append(item[i:i+10])
+						i += 10
+					elif item[i+11] == ' ':
+						temp.append(item[i:i+11])
+						i += 11
+					else:
+						temp.append(item[i:i+12])
+						i += 12
+				temp.append(item[i:])
+			else:
+				temp.append(item)
+		
+		string = ''
+		for item in temp:
+			string = string + '\n' + item
+		return string
+
+	def carregaDescanso(self):
+		font = QFont()
+		font.setFamilies([u"Aldrich"])
+		font.setPointSize(10)
+		
+		try:
+			cursor.execute('SELECT id_sala, nome, estado FROM chave ORDER BY id_sala ASC')
+			chaves = cursor.fetchall()
+		except sqlite3.Error as erro:
+			print('Erro com o banco de dados: ', erro)
+			return
+
+		chaves = [chaves[i:i + 5] for i in range(0, len(chaves), 5)]
+		for row, linha in enumerate(chaves):
+			for col, coluna in enumerate(linha):
+
+				bolota = QLabel(self.ui.frame_148)
+				bolota.setObjectName(f"label_1{row}{col}")
+				bolota.setMinimumSize(QSize(105, 105))
+
+				string = self.divideString(coluna[1])
+				bolota.setText(f"{coluna[0]}{string}")
+				
+				if coluna[2]:
+					bolota.setStyleSheet(u"color:#000; background-color:#f89633")
+				else:
+					bolota.setStyleSheet(u"color:#000; background-color:#fff")
+				
+				bolota.setFont(font)
+				bolota.setAlignment(Qt.AlignCenter)
+				self.ui.gridLayout_3.addWidget(bolota, row, col, 1, 1)
+		
+		self.ui.pages.setCurrentWidget(self.ui.descanso)
 		
 	def descansoTela(self):
 		self.timer_descanso.stop()
 		if self.ui.pages.currentWidget() != self.ui.descanso:
 			self.telaAtual = self.ui.pages.currentWidget()
 		print(self.telaAtual.objectName())
-		self.ui.pages.setCurrentWidget(self.ui.descanso)
+		self.carregaDescanso()
 
 	 
 if __name__ == '__main__':
