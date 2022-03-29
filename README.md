@@ -1,6 +1,4 @@
-# hub_key
-
--Em Português
+# Em Português
 
 Esse projeto deu início quando eu e minha turma da Fábrica de Software começamos a procurar as necessidades do Senac Hub Academy e pensamos em como curar essas dores. Como estavamos na unidade currícular de sistema desktop, essa dor do Hub Academy virou nosso desafio da unidade currícular.
 Esse sistema desktop que fizemos tem como objetivo eliminar o uso de ferramentas à mão para automatizar com agilidade o registro dos empréstimos de chaves.
@@ -13,7 +11,7 @@ Após tudo isso pronto, cada um escolheu uma tela para desenvolver usando o QtDe
 Link do Mockup: https://www.figma.com/file/nnRD7Z9swkhbeu1YHMZbxB/HUB_KEY?node-id=506%3A887
 
 
--In English
+# In English
 
 This project started when my class from Fábrica de Software and I started looking for the needs of Senac Hub Academy and we thought about how to cure those needs. Since we were on the desktop system module, this Hub Academy need became our module challenge.
 This desktop system that we made aims to eliminate the use of hand tools to quickly automate the registration of key loans.
